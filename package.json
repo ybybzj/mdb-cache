@@ -1,6 +1,6 @@
 {
   "name": "mdb-cache",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Simple mongo db key-value store implementation",
   "main": "index.js",
   "scripts": {
