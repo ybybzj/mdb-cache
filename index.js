@@ -7,6 +7,7 @@ var defaultOptions = {
   uri: DEFAULT_DB_URI,
   collection: 'mdb-cache',
   connectionOptions: {},
+  //dbPromise: dbPromise, //if passed in, then ignore uri & connectionOptions
   idFeild: '_id'
   // invalid: function(){return false;}
 };
@@ -15,7 +16,7 @@ function MongoDBCache(options){
   this._idFeild = options.idFeild;
   this._collection = options.collection;
   // this._invalid = options.invalid;
-  this._db = new BPromise(function(resolve, reject){
+  this._db = isPromise(options.dbPromise) ? options.dbPromise : new BPromise(function(resolve, reject){
     MongoClient.connect(options.uri, options.connectionOptions, function(err, db){
       if(err){
         return reject(err);
@@ -96,6 +97,10 @@ proto._dbOp = function(operation, id, cb){
   };
 };
 module.exports = MongoDBCache;
+
+function isPromise(p){
+  return p && typeof p.then === 'function';
+}
 // if(require.main === module){
 //   var mgCache = new MongoDBCache();
 //   mgCache.set(1, {'item':'1'}).then(function(){
