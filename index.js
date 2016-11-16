@@ -68,6 +68,12 @@ proto.set = function(id, value){
   })(data, {upsert: true});
 };
 
+proto.update = function(id, value){
+  return this._dbOp('update', id, function(_, resolve){
+    return resolve();
+  })({$set: value});
+}
+
 proto.close = function(){
   return this._db.then(function(db){
     return db.close();
