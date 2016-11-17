@@ -2,6 +2,8 @@ var MongoClient = require('mongodb').MongoClient;
 var assert = require('assert');
 var xtend = require('xtend');
 var BPromise = require('bluebird');
+var EventEmitter = require('events');
+var $util = require('util');
 var DEFAULT_DB_URI = 'mongodb://127.0.0.1:27017/data-cache-db';
 var defaultOptions = {
   uri: DEFAULT_DB_URI,
@@ -9,9 +11,10 @@ var defaultOptions = {
   connectionOptions: {},
   //dbPromise: dbPromise, //if passed in, then ignore uri & connectionOptions
   idFeild: '_id'
-  // invalid: function(){return false;}
 };
+
 function MongoDBCache(options){
+  var _this = this;
   options = xtend({}, defaultOptions, options);
   this._idFeild = options.idFeild;
   this._collection = options.collection;
@@ -19,12 +22,17 @@ function MongoDBCache(options){
   this._db = isPromise(options.dbPromise) ? options.dbPromise : new BPromise(function(resolve, reject){
     MongoClient.connect(options.uri, options.connectionOptions, function(err, db){
       if(err){
+        _this.emit('disconnect');
         return reject(err);
       }
+      _this.emit('connect');
       resolve(db);
     });
   });
+  EventEmitter.call(this);
 };
+
+$util.inherits(MongoDBCache, EventEmitter);
 
 var proto = MongoDBCache.prototype;
 
@@ -75,8 +83,11 @@ proto.update = function(id, value){
 }
 
 proto.close = function(){
+  var _this = this;
   return this._db.then(function(db){
     return db.close();
+  }).then(function (){
+    _this.emit('disconnect');
   });
 };
 
@@ -99,6 +110,11 @@ proto._dbOp = function(operation, id, cb){
         });
         return collection[operation].apply(collection, args);
       });
+    }).catch(function(err){
+      if(typeof _this.onError === 'function'){
+        _this.onError(err);
+      }
+      throw err;
     });
   };
 };
